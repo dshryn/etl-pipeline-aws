@@ -10,7 +10,7 @@ SELECT
   SUM(CASE WHEN TRY(date_parse(FlightDate, '%d-%m-%Y')) IS NOT NULL THEN 1 ELSE 0 END) AS dd_mm_yyyy_rows
 FROM flight_data.flight_bronze_raw;
 
--- search for flight date values that fail common parsers
+-- search for flightdate values that fail common parsers
 SELECT FlightDate, COUNT(*) AS cnt
 FROM flight_data.flight_bronze_raw
 WHERE TRY(date_parse(FlightDate, '%d-%m-%Y')) IS NULL
@@ -33,10 +33,23 @@ SELECT * FROM flight_data.flight_silver_parquet LIMIT 5;
 
 
 
--- gold ctas
+-- gold ctas ml ready
 SELECT COUNT(*) FROM flight_data.flight_gold_ml_ready;
 
 SELECT year, COUNT(*) FROM flight_data.flight_gold_ml_ready GROUP BY year ORDER BY year;
 
 SELECT * FROM flight_data.flight_gold_ml_ready LIMIT 10;
+
+
+-- gold ctas airline summary
+SELECT * FROM flight_data.flight_gold_airline_summary WHERE year=2016 LIMIT 10;
+
+SELECT COUNT(*) FROM flight_data.flight_gold_airline_summary;
+
+
+
+-- gold ctas route summary
+SELECT * FROM flight_data.flight_gold_route_summary WHERE year=2016 AND origin='ATL' LIMIT 10;
+
+SELECT COUNT(*) FROM flight_data.flight_gold_route_summary;
 
