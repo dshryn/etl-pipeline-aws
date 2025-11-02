@@ -63,3 +63,4 @@ s3://ys-flight-data-gold/models/label_encoders.pkl
 Docker exposes port ```8000```.
 
 Nginx (frontend) proxies ```/predict → http://127.0.0.1:8000/predict.```
+
