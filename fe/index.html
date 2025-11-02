@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Flight Delay Predictor</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        body {
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            margin: 24px;
+            background: #f7fafc;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 6px 24px rgba(2, 6, 23, 0.06);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: #334155;
+        }
+
+        input,
+        select {
+            width: 160px;
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #fff;
+        }
+
+        button {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 0;
+            background: #0ea5a4;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:disabled {
+            opacity: .6;
+            cursor: not-allowed
+        }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .result {
+            margin-top: 18px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 640px;
+            margin-top: 18px;
+        }
+
+        small {
+            color: #64748b
+        }
+
+        .hint {
+            color: #475569;
+            font-size: 13px
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Flight Delay Predictor</h1>
+        <p class="hint">Enter flight features below and click <strong>Predict</strong>. The UI calls
+            <code>/predict</code> and shows probability + a small chart.
+        </p>
+
+        <div id="form">
+            <div class="row">
+                <div>
+                    <label>Month</label>
+                    <input id="month" type="number" min="1" max="12" value="1" />
+                </div>
+                <div>
+                    <label>Day of week</label>
+                    <input id="day_of_week" type="number" min="1" max="7" value="1" />
+                </div>
+                <div>
+                    <label>Season</label>
+                    <select id="season">
+                        <option>Winter</option>
+                        <option>Spring</option>
+                        <option>Summer</option>
+                        <option>Autumn</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Carrier</label>
+                    <input id="carrier" type="text" value="UA" />
+                </div>
+                <div>
+                    <label>Operating carrier</label>
+                    <input id="operating_carrier" type="text" value="G7" />
+                </div>
+                <div>
+                    <label>Origin</label>
+                    <input id="origin" type="text" value="EWR" />
+                </div>
+                <div>
+                    <label>Destination</label>
+                    <input id="destination" type="text" value="MHT" />
+                </div>
+                <div>
+                    <label>Distance</label>
+                    <input id="distance" type="number" value="1979" />
+                </div>
+                <div>
+                    <label>Dep delay minutes</label>
+                    <input id="dep_delay_minutes" type="number" value="71" />
+                </div>
+            </div>
+
+            <div class="flex-between">
+                <div>
+                    <button id="predictBtn">Predict</button>
+                    <button id="clearBtn" style="background:#64748b;margin-left:8px">Clear</button>
+                </div>
+                <div class="hint">API endpoint: <code>/predict</code> (proxied by nginx)</div>
+            </div>
+        </div>
+
+        <div id="result" class="result" style="display:none">
+            <div><strong>Prediction:</strong> <span id="predText"></span></div>
+            <div><strong>Probability:</strong> <span id="probText"></span></div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="probChart" height="120"></canvas>
+        </div>
+
+        <p style="margin-top:14px"><small>Tip: use the Swagger UI at <a href="/docs" target="_blank">/docs</a> to test
+                the model interactively.</small></p>
+    </div>
+
+    <script>
+        (() => {
+            const predictBtn = document.getElementById('predictBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const predText = document.getElementById('predText');
+            const probText = document.getElementById('probText');
+            const resultDiv = document.getElementById('result');
+
+            // chart
+            const ctx = document.getElementById('probChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Not delayed', 'Delayed'],
+                    datasets: [{ label: 'Probability', data: [0, 0], backgroundColor: ['#94a3b8', '#0ea5a4'] }]
+                },
+                options: {
+                    indexAxis: 'x',
+                    scales: { y: { beginAtZero: true, max: 1 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            function setBusy(b) {
+                predictBtn.disabled = b;
+                predictBtn.textContent = b ? 'Predicting...' : 'Predict';
+            }
+
+            function getForm() {
+                return {
+                    month: parseInt(document.getElementById('month').value || 0),
+                    day_of_week: parseInt(document.getElementById('day_of_week').value || 0),
+                    season: document.getElementById('season').value,
+                    carrier: document.getElementById('carrier').value || '',
+                    operating_carrier: document.getElementById('operating_carrier').value || '',
+                    origin: document.getElementById('origin').value || '',
+                    destination: document.getElementById('destination').value || '',
+                    distance: parseFloat(document.getElementById('distance').value || 0),
+                    dep_delay_minutes: parseFloat(document.getElementById('dep_delay_minutes').value || 0)
+                };
+            }
+
+            async function callPredict(body) {
+                // requests go to same origin /predict nginx proxy
+                const resp = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!resp.ok) {
+                    const text = await resp.text();
+                    throw new Error(`Server responded ${resp.status}: ${text}`);
+                }
+                return await resp.json();
+            }
+
+            predictBtn.addEventListener('click', async () => {
+                setBusy(true);
+                resultDiv.style.display = 'none';
+                try {
+                    const body = getForm();
+                    if (!body.month || !body.day_of_week || !body.carrier) {
+                        alert('Please fill month, day_of_week and carrier');
+                        setBusy(false);
+                        return;
+                    }
+
+                    const out = await callPredict(body);
+                    // expected pred- 0/1, probability- float
+                    const prob = parseFloat(out.probability ?? 0);
+                    const pred = parseInt(out.pred ?? (prob > 0.5 ? 1 : 0));
+                    predText.textContent = pred === 1 ? 'Delayed' : 'Not delayed';
+                    probText.textContent = prob.toFixed(4);
+
+                    chart.data.datasets[0].data = [1 - prob, prob];
+                    chart.update();
+                    resultDiv.style.display = 'block';
+                } catch (err) {
+                    console.error(err);
+                    alert('Prediction failed: ' + err.message);
+                } finally {
+                    setBusy(false);
+                }
+            });
+
+            clearBtn.addEventListener('click', () => {
+                document.getElementById('month').value = 1;
+                document.getElementById('day_of_week').value = 1;
+                document.getElementById('season').value = 'Winter';
+                document.getElementById('carrier').value = 'UA';
+                document.getElementById('operating_carrier').value = 'G7';
+                document.getElementById('origin').value = 'EWR';
+                document.getElementById('destination').value = 'MHT';
+                document.getElementById('distance').value = 1979;
+                document.getElementById('dep_delay_minutes').value = 71;
+                resultDiv.style.display = 'none';
+                chart.data.datasets[0].data = [0, 0];
+                chart.update();
+            });
+
+            // check if backend reachable
+            (async () => {
+                try {
+                    const ping = await fetch('/docs', { method: 'GET' });
+                    if (!ping.ok) console.warn('Backend docs not reachable');
+                } catch (e) { console.warn('Backend not reachable:', e); }
+            })();
+        })();
+    </script>
+</body>
+
+</html>
