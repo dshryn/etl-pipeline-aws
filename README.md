@@ -1,6 +1,6 @@
 # End-to-end ETL Data Pipeline on AWS
 
-An ETL pipeline that ingests public flight delay data, implements a medallion architecture for pipelining on AWS, trains a predictive model, and serves predictions via a web interface.
+An ETL pipeline that ingests public flight delay data, implements a medallion architecture for pipelining on AWS, trains a predictive model, serves predictions via a web interface, and also connects to local PowerBI for generating insights from gold layer data through Athena and ODBC driver.
 
 ## Project Summary
 
@@ -17,7 +17,7 @@ The gold layer data is also visualized using PowerBI through ODBC Driver, connec
 
 ## Architecture
 
-![Architecture Diagram](/architecture-overview.png)
+![Architecture Diagram](docs/architecture-overview.png)
 
 **Components:**
 - **Data Storage**: Amazon S3 (medallion buckets: Bronze, Silver, Gold)
@@ -43,6 +43,14 @@ The gold layer data is also visualized using PowerBI through ODBC Driver, connec
 11. **Configure Frontend**: Set up nginx with static files and reverse proxy
 12. **Testing**: Validate predictions and dashboard functionality
 13. **Data Visualization**: Connect PowerBI to Athena using ODBC driver to load final gold tables
+
+## PowerBI Dashboard
+
+![PowerBI Dashboard](docs/powerbi-dashboard.png)
+
+## Website
+
+![Website](docs/website.png)
 
 ## Deployment & Runtime
 
