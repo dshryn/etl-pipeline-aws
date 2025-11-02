@@ -125,29 +125,9 @@ WITH SERDEPROPERTIES (
   "quoteChar" = "\"",
   "escapeChar" = "\\"
 )
+STORED AS TEXTFILE
 LOCATION 's3://ys-flight-data-bronze/raw/'
-TBLPROPERTIES ('skip.header.line.count'='1', 'has_encrypted_data'='false');
-
-
-
-
-SELECT * FROM flight_data.flight_bronze_raw LIMIT 5;
-
-
-SELECT COUNT(*) FROM flight_data.flight_bronze_raw;
-
-
-SELECT
-  COUNT(*) AS total_rows,
-  SUM(CASE WHEN TRY(date_parse(FlightDate, '%d-%m-%Y')) IS NOT NULL THEN 1 ELSE 0 END) AS dd_mm_yyyy_rows
-FROM flight_data.flight_bronze_raw;
-
-
-SELECT FlightDate, COUNT(*) AS cnt
-FROM flight_data.flight_bronze_raw
-WHERE TRY(date_parse(FlightDate, '%d-%m-%Y')) IS NULL
-  AND TRY(date_parse(FlightDate, '%Y-%m-%d')) IS NULL
-  AND TRY(from_iso8601_date(FlightDate)) IS NULL
-GROUP BY FlightDate
-ORDER BY cnt DESC
-LIMIT 50;
+TBLPROPERTIES (
+  'skip.header.line.count' = '1',
+  'has_encrypted_data' = 'false'
+);
