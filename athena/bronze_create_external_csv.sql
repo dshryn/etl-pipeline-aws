@@ -1,0 +1,153 @@
+CREATE EXTERNAL TABLE IF NOT EXISTS flight_data.flight_bronze_raw (
+  Year STRING,
+  Quarter STRING,
+  Month STRING,
+  DayOfMonth STRING,
+  DayOfWeek STRING,
+  FlightDate STRING,
+  Marketing_Airline_Network STRING,
+  Operated_or_Branded_Code_Share_Partners STRING,
+  DOT_ID_Marketing_Airline STRING,
+  IATA_Code_Marketing_Airline STRING,
+  Flight_Number_Marketing_Airline STRING,
+  Originally_Scheduled_Code_Share_Airline STRING,
+  DOT_ID_Originally_Scheduled_Code_Share_Airline STRING,
+  IATA_Code_Originally_Scheduled_Code_Share_Airline STRING,
+  Flight_Num_Originally_Scheduled_Code_Share_Airline STRING,
+  Operating_Airline STRING,
+  DOT_ID_Operating_Airline STRING,
+  IATA_Code_Operating_Airline STRING,
+  Tail_Number STRING,
+  Flight_Number_Operating_Airline STRING,
+  OriginAirportID STRING,
+  OriginAirportSeqID STRING,
+  OriginCityMarketID STRING,
+  Origin STRING,
+  OriginCityName STRING,
+  OriginState STRING,
+  OriginStateFips STRING,
+  OriginStateName STRING,
+  OriginWac STRING,
+  DestAirportID STRING,
+  DestAirportSeqID STRING,
+  DestCityMarketID STRING,
+  Dest STRING,
+  DestCityName STRING,
+  DestState STRING,
+  DestStateFips STRING,
+  DestStateName STRING,
+  DestWac STRING,
+  CRSDepTime STRING,
+  DepTime STRING,
+  DepDelay STRING,
+  DepDelayMinutes STRING,
+  DepDel15 STRING,
+  DepartureDelayGroups STRING,
+  DepTimeBlk STRING,
+  TaxiOut STRING,
+  WheelsOff STRING,
+  WheelsOn STRING,
+  TaxiIn STRING,
+  CRSArrTime STRING,
+  ArrTime STRING,
+  ArrDelay STRING,
+  ArrDelayMinutes STRING,
+  ArrDel15 STRING,
+  ArrivalDelayGroups STRING,
+  ArrTimeBlk STRING,
+  Cancelled STRING,
+  CancellationCode STRING,
+  Diverted STRING,
+  CRSElapsedTime STRING,
+  ActualElapsedTime STRING,
+  AirTime STRING,
+  Flights STRING,
+  Distance STRING,
+  DistanceGroup STRING,
+  CarrierDelay STRING,
+  WeatherDelay STRING,
+  NASDelay STRING,
+  SecurityDelay STRING,
+  LateAircraftDelay STRING,
+  FirstDepTime STRING,
+  TotalAddGTime STRING,
+  LongestAddGTime STRING,
+  DivAirportLandings STRING,
+  DivReachedDest STRING,
+  DivActualElapsedTime STRING,
+  DivArrDelay STRING,
+  DivDistance STRING,
+  Div1Airport STRING,
+  Div1AirportID STRING,
+  Div1AirportSeqID STRING,
+  Div1WheelsOn STRING,
+  Div1TotalGTime STRING,
+  Div1LongestGTime STRING,
+  Div1WheelsOff STRING,
+  Div1TailNum STRING,
+  Div2Airport STRING,
+  Div2AirportID STRING,
+  Div2AirportSeqID STRING,
+  Div2WheelsOn STRING,
+  Div2TotalGTime STRING,
+  Div2LongestGTime STRING,
+  Div2WheelsOff STRING,
+  Div2TailNum STRING,
+  Div3Airport STRING,
+  Div3AirportID STRING,
+  Div3AirportSeqID STRING,
+  Div3WheelsOn STRING,
+  Div3TotalGTime STRING,
+  Div3LongestGTime STRING,
+  Div3WheelsOff STRING,
+  Div3TailNum STRING,
+  Div4Airport STRING,
+  Div4AirportID STRING,
+  Div4AirportSeqID STRING,
+  Div4WheelsOn STRING,
+  Div4TotalGTime STRING,
+  Div4LongestGTime STRING,
+  Div4WheelsOff STRING,
+  Div4TailNum STRING,
+  Div5Airport STRING,
+  Div5AirportID STRING,
+  Div5AirportSeqID STRING,
+  Div5WheelsOn STRING,
+  Div5TotalGTime STRING,
+  Div5LongestGTime STRING,
+  Div5WheelsOff STRING,
+  Div5TailNum STRING,
+  Duplicate STRING
+)
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+WITH SERDEPROPERTIES (
+  "separatorChar" = ",",
+  "quoteChar" = "\"",
+  "escapeChar" = "\\"
+)
+LOCATION 's3://ys-flight-data-bronze/raw/'
+TBLPROPERTIES ('skip.header.line.count'='1', 'has_encrypted_data'='false');
+
+
+
+
+SELECT * FROM flight_data.flight_bronze_raw LIMIT 5;
+
+
+SELECT COUNT(*) FROM flight_data.flight_bronze_raw;
+
+
+SELECT
+  COUNT(*) AS total_rows,
+  SUM(CASE WHEN TRY(date_parse(FlightDate, '%d-%m-%Y')) IS NOT NULL THEN 1 ELSE 0 END) AS dd_mm_yyyy_rows
+FROM flight_data.flight_bronze_raw;
+
+
+SELECT FlightDate, COUNT(*) AS cnt
+FROM flight_data.flight_bronze_raw
+WHERE TRY(date_parse(FlightDate, '%d-%m-%Y')) IS NULL
+  AND TRY(date_parse(FlightDate, '%Y-%m-%d')) IS NULL
+  AND TRY(from_iso8601_date(FlightDate)) IS NULL
+GROUP BY FlightDate
+ORDER BY cnt DESC
+LIMIT 50;
