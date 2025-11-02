@@ -45,3 +45,29 @@ SELECT
   year
 FROM base
 WHERE flight_date IS NOT NULL;
+
+
+
+-- unload smples
+UNLOAD (
+  SELECT *
+  FROM flight_data.flight_gold_ml_ready
+)
+TO 's3://ys-flight-data-gold/ml-clean/'
+WITH (format = 'PARQUET', compression = 'SNAPPY');
+
+UNLOAD (
+  SELECT *
+  FROM flight_data.flight_gold_ml_ready
+  WHERE year = 2018
+)
+TO 's3://ys-flight-data-gold/ml-2018/'
+WITH (format = 'PARQUET', compression = 'SNAPPY');
+
+UNLOAD (
+  SELECT *
+  FROM flight_data.flight_gold_ml_ready
+  WHERE year = 2024
+)
+TO 's3://ys-flight-data-gold/ml-2024/'
+WITH (format = 'PARQUET', compression = 'SNAPPY');

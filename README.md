@@ -1,4 +1,4 @@
-# AWS Data Pipeline (In Progress)
+# AWS Data Pipeline
 
 This project implements an end-to-end data pipeline on AWS for ingesting, processing, and analyzing data.
 
